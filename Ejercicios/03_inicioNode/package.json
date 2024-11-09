@@ -1,0 +1,16 @@
+{
+  "name": "03_inicionode",
+  "version": "1.0.0",
+  "description": "Ejemplo CommonJS",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node app.js",
+    "listar": "dir"
+  },
+  "author": "Paco Pedrosa",
+  "license": "ISC",
+  "dependencies": {
+    "nodemon": "3.1.7"
+  }
+}
