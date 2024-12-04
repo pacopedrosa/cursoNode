@@ -1,9 +1,5 @@
 import { createClient, deleteCliente, getAllClientes, getClientById } from "../models/clientes.js"
 
-// export const getClientesHandler = (req, res) => {
-    
-// }
-
 export const getAllClientesHandler = (req, res) => {
     //llamar a la funcion en SQLITE3 que se traiga todos los clientes
     getAllClientes((err, rows)=> {
