@@ -1,0 +1,32 @@
+services:
+  # Servicio backend
+  backend:
+    build: .
+    container_name: upload-backend
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+    volumes:
+      - ./uploads:/app/uploads
+      - ./recycled:/app/recycled
+      - ./public:/app/public
+    restart: unless-stopped
+
+  # Servicio nginx como proxy inverso
+  nginx:
+    image: nginx:latest
+    container_name: upload-nginx
+    ports:
+      - "8050:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+      - ./public:/usr/share/nginx/html
+    depends_on:
+      - backend
+
+volumes:
+  uploads:
+  recycled:
+  

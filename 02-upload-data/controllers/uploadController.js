@@ -67,10 +67,20 @@ export const moveToRecycled = (req, res) => {
   const destPath = path.join(process.cwd(), "recycled", fileName);
 
   try {
+    // Verificar si el archivo existe
+    if (!fs.existsSync(sourcePath)) {
+      return res.status(404).send(`El archivo ${fileName} no existe`);
+    }
+
+    // Verificar permisos de escritura
+    fs.accessSync(sourcePath, fs.constants.W_OK);
+    fs.accessSync(path.dirname(destPath), fs.constants.W_OK);
+
     fs.renameSync(sourcePath, destPath);
     res.send(`Archivo ${fileName} movido a la papelera`);
   } catch (error) {
-    res.status(500).send(`Error al mover el archivo a la papelera: ${fileName}`);
+    console.error(`Error al mover archivo: ${error.message}`);
+    res.status(500).send(`Error al mover el archivo a la papelera: ${error.message}`);
   }
 };
 
