@@ -48,60 +48,109 @@ function updateChart(uploadedSize, recycledSize) {
 
 // Función para listar los archivos subidos
 async function fetchFiles() {
-  const response = await fetch("/uploads");
-  if (!response.ok) {
-    console.error("Error al obtener los archivos");
-    return;
+  try {
+    const response = await fetch("/uploads");
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const data = await response.json();
+    
+    fileList.innerHTML = "";
+    recycleList.innerHTML = "";
+
+    // Renderizar archivos
+    data.uploaded.forEach((file) => {
+      const li = document.createElement("li");
+      li.className = "flex justify-between items-center bg-gray-100 p-2 rounded-lg shadow-sm";
+      li.innerHTML = `
+        <span>${file.name} (${formatBytes(file.size)})</span>
+        <button class="bg-red-500 text-white px-3 py-1 rounded-lg hover:bg-red-600" data-filename="${file.name}">
+          Mover a papelera
+        </button>
+      `;
+      fileList.appendChild(li);
+    });
+
+    data.recycled.forEach((file) => {
+      const li = document.createElement("li");
+      li.className = "flex justify-between items-center bg-gray-100 p-2 rounded-lg shadow-sm";
+      li.innerHTML = `
+        <span>${file.name} (${formatBytes(file.size)})</span>
+        <button class="bg-green-500 text-white px-3 py-1 rounded-lg hover:bg-green-600" data-restore="${file.name}">
+          Restaurar
+        </button>
+      `;
+      recycleList.appendChild(li);
+    });
+
+    updateChart(data.totalUploadSize, data.totalRecycledSize);
+  } catch (error) {
+    console.error('Error:', error);
+    alert('Error al cargar los archivos');
   }
-  const data = await response.json();
-  fileList.innerHTML = "";
-  recycleList.innerHTML = "";
-
-  // Renderizar los archivos en la lista
-  data.uploaded.forEach((file) => {
-    const li = document.createElement("li");
-    li.className =
-      "flex justify-between items-center bg-gray-100 p-2 rounded-lg shadow-sm";
-    li.innerHTML = `
-      <span>${file.name} (${formatBytes(file.size)})</span>
-      <button class="bg-red-500 text-white px-3 py-1 rounded-lg hover:bg-red-600" data-filename="${file.name}">
-        Mover a papelera
-      </button>
-    `;
-    fileList.appendChild(li);
-  });
-
-  data.recycled.forEach((file) => {
-    const li = document.createElement("li");
-    li.className = "flex justify-between items-center bg-gray-100 p-2 rounded-lg shadow-sm";
-    li.innerHTML = `
-      <span>${file.name} (${formatBytes(file.size)})</span>
-      <button class="bg-green-500 text-white px-3 py-1 rounded-lg hover:bg-green-600" data-restore="${file.name}">
-        Restaurar
-      </button>
-    `;
-    recycleList.appendChild(li);
-  });
-
-  updateChart(data.totalUploadSize, data.totalRecycledSize);
-
-  // Agregar eventos de eliminación
-  document.querySelectorAll("button[data-filename]").forEach((button) => {
-    button.addEventListener("click", async (e) => {
-      const fileName = e.target.dataset.filename;
-      await fetch(`/uploads/${fileName}/recycle`, { method: "POST" });
-      fetchFiles();
-    });
-  });
-
-  document.querySelectorAll("button[data-restore]").forEach((button) => {
-    button.addEventListener("click", async (e) => {
-      const fileName = e.target.dataset.restore;
-      await fetch(`/uploads/${fileName}/restore`, { method: "POST" });
-      fetchFiles();
-    });
-  });
 }
+
+// Event delegation para los botones de mover a papelera
+fileList.addEventListener('click', async (e) => {
+  const button = e.target.closest('button[data-filename]');
+  if (!button) return;
+
+  try {
+    const fileName = encodeURIComponent(button.dataset.filename);
+    console.log('Intentando mover archivo:', fileName);
+
+    const response = await fetch(`/uploads/${fileName}/recycle`, {
+      method: "POST",
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    const data = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(data.message || 'Error al mover el archivo');
+    }
+    
+    console.log('Respuesta del servidor:', data);
+    await fetchFiles();
+  } catch (error) {
+    console.error('Error detallado:', error);
+    alert(error.message);
+  }
+});
+
+// Event delegation para los botones de restaurar
+recycleList.addEventListener('click', async (e) => {
+  const button = e.target.closest('button[data-restore]');
+  if (!button) return;
+
+  try {
+    const fileName = encodeURIComponent(button.dataset.restore);
+    console.log('Intentando restaurar archivo:', fileName);
+
+    const response = await fetch(`/uploads/${fileName}/restore`, {
+      method: "POST",
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    const data = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(data.message || 'Error al restaurar el archivo');
+    }
+    
+    console.log('Respuesta del servidor:', data);
+    await fetchFiles();
+  } catch (error) {
+    console.error('Error detallado:', error);
+    alert(error.message);
+  }
+});
 
 emptyRecycleBtn.addEventListener("click", async () => {
   await fetch("/uploads/recycle", { method: "DELETE" });

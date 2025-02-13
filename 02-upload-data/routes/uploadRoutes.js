@@ -11,19 +11,24 @@ import {
 
 const router = Router();
 
+// Middleware para manejar errores específicos de las rutas
+const asyncHandler = (fn) => (req, res, next) => {
+  Promise.resolve(fn(req, res, next)).catch(next);
+};
+
 // Ruta para subir archivo
-router.post("/", upload.single("file"), uploadFile);
+router.post("/", upload.single("file"), asyncHandler(uploadFile));
 
 // Ruta para listar los archivos subidos
-router.get("/", listFiles);
+router.get("/", asyncHandler(listFiles));
 
 // Ruta para mover un archivo a la papelera
-router.post("/:fileName/recycle", moveToRecycled);
+router.post("/:fileName/recycle", asyncHandler(moveToRecycled));
 
 // Ruta para restaurar un archivo de la papelera
-router.post("/:fileName/restore", restoreFile);
+router.post("/:fileName/restore", asyncHandler(restoreFile));
 
 // Ruta para vaciar la papelera
-router.delete("/recycle", emptyRecycleBin);
+router.delete("/recycle", asyncHandler(emptyRecycleBin));
 
 export default router;

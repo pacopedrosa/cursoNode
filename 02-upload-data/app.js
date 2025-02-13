@@ -6,40 +6,54 @@ import { fileURLToPath } from "url";
 import uploadRoutes from "./routes/uploadRoutes.js";
 
 const app = express();
-
-// Obtener la ruta absoluta de la carpeta actual
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Ruta de la carpeta "uploads"
-const uploadsDir = path.join(__dirname, "uploads");
+// Middleware para manejar errores
+app.use((err, req, res, next) => {
+  console.error('Error en la aplicación:', err);
+  res.status(500).json({
+    error: true,
+    message: err.message || 'Error interno del servidor'
+  });
+});
 
-// Ruta de la carpeta "recycled"
+// Middleware para logging
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.path}`);
+  next();
+});
+
+// Configurar CORS
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+  
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  next();
+});
+
+// Crear directorios necesarios
+const uploadsDir = path.join(__dirname, "uploads");
 const recycledDir = path.join(__dirname, "recycled");
 
-// Verificar si la carpeta "uploads" existe, si no, crearla
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-  console.log(`Carpeta "${uploadsDir}" creada exitosamente.`);
-} else {
-  console.log(`Carpeta "${uploadsDir}" ya existe.`);
-}
+[uploadsDir, recycledDir].forEach(dir => {
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+    console.log(`Directorio creado: ${dir}`);
+  }
+});
 
-// Verificar si la carpeta "recycled" existe, si no, crearla
-if (!fs.existsSync(recycledDir)) {
-  fs.mkdirSync(recycledDir, { recursive: true });
-  console.log(`Carpeta "${recycledDir}" creada exitosamente.`);
-} else {
-  console.log(`Carpeta "${recycledDir}" ya existe.`);
-}
-
-// Servir archivos estáticos (como el HTML)
+// Servir archivos estáticos
 app.use(express.static(path.join(__dirname, "public")));
+app.use(express.json());
 
-// Usar las rutas para manejar uploads/files
+// Rutas
 app.use("/uploads", uploadRoutes);
 
-// Configuramos el puerto donde va a escuchar el servidor
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en http://localhost:${PORT}`);

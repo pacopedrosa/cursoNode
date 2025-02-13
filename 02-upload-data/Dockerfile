@@ -10,7 +10,9 @@ COPY . .
 
 # Crear directorios y establecer permisos
 RUN mkdir -p uploads recycled && \
-    chown -R node:node /app
+    chown -R node:node /app && \
+    chmod -R 777 /app/uploads && \
+    chmod -R 777 /app/recycled
 
 USER node
 

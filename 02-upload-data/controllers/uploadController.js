@@ -2,6 +2,7 @@
 import fs from "fs";
 import multer from "multer";
 import path from "path";
+import fsPromises from 'fs/promises';
 
 // Configuración de Multer: almacenamiento y nombres de archivo
 const storage = multer.diskStorage({
@@ -62,39 +63,85 @@ export const listFiles = (req, res) => {
 
 // Controlador para mover un archivo a la papelera
 export const moveToRecycled = (req, res) => {
-  const fileName = req.params.fileName;
-  const sourcePath = path.join(process.cwd(), "uploads", fileName);
-  const destPath = path.join(process.cwd(), "recycled", fileName);
-
   try {
+    const fileName = decodeURIComponent(req.params.fileName);
+    console.log("Moviendo archivo:", fileName);
+
+    const sourcePath = path.join(process.cwd(), "uploads", fileName);
+    const destPath = path.join(process.cwd(), "recycled", fileName);
+
     // Verificar si el archivo existe
     if (!fs.existsSync(sourcePath)) {
-      return res.status(404).send(`El archivo ${fileName} no existe`);
+      console.log("Archivo no encontrado:", sourcePath);
+      return res.status(404).json({
+        error: true,
+        message: `El archivo ${fileName} no existe`
+      });
     }
 
-    // Verificar permisos de escritura
-    fs.accessSync(sourcePath, fs.constants.W_OK);
-    fs.accessSync(path.dirname(destPath), fs.constants.W_OK);
+    // Asegurar que el directorio recycled existe
+    if (!fs.existsSync('recycled')) {
+      fs.mkdirSync('recycled', { recursive: true });
+    }
 
-    fs.renameSync(sourcePath, destPath);
-    res.send(`Archivo ${fileName} movido a la papelera`);
+    // Copiar el archivo y luego eliminarlo en lugar de usar rename
+    fs.copyFileSync(sourcePath, destPath);
+    fs.unlinkSync(sourcePath);
+    
+    console.log("Archivo movido exitosamente");
+    
+    res.json({
+      success: true,
+      message: `Archivo ${fileName} movido a la papelera`
+    });
   } catch (error) {
-    console.error(`Error al mover archivo: ${error.message}`);
-    res.status(500).send(`Error al mover el archivo a la papelera: ${error.message}`);
+    console.error("Error al mover archivo:", error);
+    res.status(500).json({
+      error: true,
+      message: error.message
+    });
   }
 };
 
 // Controlador para restaurar un archivo de la papelera
 export const restoreFile = (req, res) => {
-  const fileName = req.params.fileName;
-  const sourcePath = path.join(process.cwd(), "recycled", fileName);
-  const destPath = path.join(process.cwd(), "uploads", fileName);
-
   try {
-    fs.renameSync(sourcePath, destPath);
-    res.send(`Archivo ${fileName} restaurado`);
+    const fileName = decodeURIComponent(req.params.fileName);
+    console.log("Restaurando archivo:", fileName);
+
+    const sourcePath = path.join(process.cwd(), "recycled", fileName);
+    const destPath = path.join(process.cwd(), "uploads", fileName);
+
+    // Verificar si el archivo existe
+    if (!fs.existsSync(sourcePath)) {
+      console.log("Archivo no encontrado:", sourcePath);
+      return res.status(404).json({
+        error: true,
+        message: `El archivo ${fileName} no existe`
+      });
+    }
+
+    // Asegurar que el directorio uploads existe
+    if (!fs.existsSync('uploads')) {
+      fs.mkdirSync('uploads', { recursive: true });
+    }
+
+    // Copiar el archivo y luego eliminarlo en lugar de usar rename
+    fs.copyFileSync(sourcePath, destPath);
+    fs.unlinkSync(sourcePath);
+    
+    console.log("Archivo restaurado exitosamente");
+    
+    res.json({
+      success: true,
+      message: `Archivo ${fileName} restaurado`
+    });
   } catch (error) {
-    res.status(500).send(`Error al restaurar el archivo: ${fileName}`);
+    console.error("Error al restaurar archivo:", error);
+    res.status(500).json({
+      error: true,
+      message: error.message
+    });
   }
 };
 
